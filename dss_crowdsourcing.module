@@ -1,0 +1,10 @@
+<?php
+
+  /**
+   * @file Core functionality for the crowdsourcing Module
+   * @author griffinj@lafayette.edu
+   *
+   */
+
+require_once dirname(__FILE__) . '/theme/theme.inc';
+
