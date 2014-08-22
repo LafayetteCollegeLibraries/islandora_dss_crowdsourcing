@@ -8,15 +8,36 @@
 
 require_once dirname(__FILE__) . '/theme/theme.inc';
 
-function dss_crowdsourcing_preprocess_node(&$vars) {
+/**
+ * Implements hook_islandora_xml_form_builder_form_associations().
+ */
+function dss_crowdsourcing_islandora_xml_form_builder_form_associations() {
+  return array('islandora_book_mods_form_crowdsourcing' => array('content_model' => 'islandora:bookCModel',
+								 'form_name' => 'Islandora Book MODS Form (Crowdsourcing)',
+								 'dsid' => 'MODS',
+								 'title_field' => array('titleInfo', 'title'),
+								 'transform' => 'mods_to_dc.xsl',
+								 'template' => FALSE,
+								 ),
+	       'islandora_large_image_mods_form_crowdsourcing' => array('content_model' => 'islandora:sp_large_image_cmodel',
+									'form_name' => 'Islandora Large Image MODS Form (Crowdsourcing)',
+									'dsid' => 'MODS',
+									'title_field' => array('titleInfo', 'title'),
+									'transform' => 'mods_to_dc.xsl',
+									'template' => FALSE,
+									),
+	       );
+}
 
-  //dpm($vars);
-  }
-
-function dss_crowdsourcing_preprocess_page(&$vars) {
-
-  //dpm('trace2');
-  }
+/**
+ * Implements hook_islandora_xml_form_builder_forms().
+ */
+function dss_crowdsourcing_islandora_xml_form_builder_forms() {
+  $module_path = drupal_get_path('module', 'dss_crowdsourcing');
+  return array('Islandora Book MODS Form (Crowdsourcing)' => array('form_file' => "$module_path/xml/islandora_book_mods_form_crowdsourcing.xml"),
+	       'Islandora Large Image MODS Form (Crowdsourcing)' => array('form_file' => "$module_path/xml/islandora_large_image_mods_form_crowdsourcing.xml"),
+	       );
+}
 
 /**
  * Function for saving metadata crowdsourcing form submissions.
@@ -24,7 +45,36 @@ function dss_crowdsourcing_preprocess_page(&$vars) {
  * @param $form_state
  *
  */
-function dss_crowdsourcing_metadata_save($form, $form_state) {
+
+define('XMLNS_XML_NS', ' http://www.w3.org/2000/xmlns/');
+define('HTML_XML_NS', 'http://www.w3.org/1999/xhtml');
+define('MODS_3_XSD_URI', 'http://www.loc.gov/standards/mods/v3/mods-3-5.xsd');
+
+function dss_crowdsourcing_metadata_save($form, $form_state, $mods_doc) {
+
+  // Retrieve the Object
+  $object_id = $form_state['values']['id'];
+  $object = islandora_object_load($object_id);
+
+  // Retrieve the MODS Document for the Object
+  $mods_ds = $object['MODS'];
+
+  $mods_ds->content = $mods_doc->asXML();
+}
+
+function dss_crowdsourcing_metadata_validate($mods_doc, $mods_xsd_uri = MODS_3_XSD_URI) {
+  
+  $doc = new DomDocument('1.0');
+  $doc->loadXML($mods_doc->asXML());
+
+  dpm($doc->saveXml());
+
+  // @todo Resolve issues related to warnings raised for <note> Elements
+  //return $doc->schemaValidate($mods_xsd_uri);
+  return TRUE;
+}
+
+function dss_crowdsourcing_metadata_transform($form, $form_state) {
 
   // Retrieve the Object
   $object_id = $form_state['values']['id'];
@@ -36,10 +86,24 @@ function dss_crowdsourcing_metadata_save($form, $form_state) {
 
     $mods_str = $mods_ds->content;
     $mods_doc = new SimpleXMLElement($mods_str);
+
+    // Ensure that the HTML namespace exists within the Document
+    $namespaces = $mods_doc->getNamespaces(TRUE);
+
+    // If it does not exist, add it to the DOM
+    if(!in_array(HTML_XML_NS, array_values($namespaces))) {
+
+      //$mods_doc->addAttribute('xmlns:html', HTML_XML_NS, XMLNS_XML_NS);
+      $_mods_doc = new DOMDocument('1.0');
+      $_mods_doc->loadXML($mods_doc->asXML());
+      $_mods_root = $_mods_doc->documentElement;
+      $_mods_root->setAttribute('xmlns:xhtml', HTML_XML_NS);
+      $mods_doc = new SimpleXMLElement($_mods_doc->saveXML());
+    }
   } else {
 
     // If the MODS Document does not exist for the Object, instantiate the Document
-    $mods_doc = new SimpleXMLElement('<mods xmlns="http://www.loc.gov/mods/v3" xmlns:mods="http://www.loc.gov/mods/v3" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">');
+    $mods_doc = new SimpleXMLElement('<mods xmlns="http://www.loc.gov/mods/v3" xmlns:mods="http://www.loc.gov/mods/v3" xmlns:xhtml="' . HTML_XML_NS . '" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">');
   }
 
   // @todo Review and restructure
@@ -48,20 +112,20 @@ function dss_crowdsourcing_metadata_save($form, $form_state) {
   $note->addAttribute('type', 'crowdsourced-content');
 
   // @todo Refactor
-  $header = $note->addChild('div');
+  $header = $note->addChild('div', NULL, HTML_XML_NS);
   $header->addAttribute('class', 'crowdsourced-content-header');
-  $header_content = 'Submitted by ' . $form_state['values']['name'] . '(' . $form_state['values']['mail'] . ') on ' . $form_state['values']['date'];
+  $header_content = 'Submitted by ' . $form_state['values']['name'] . ' (' . $form_state['values']['mail'] . ') on ' . $form_state['values']['date'];
   $header_p = $header->addChild('p', $header_content);
 
   // @todo Refactor
-  $body = $note->addChild('div');
+  $body = $note->addChild('div', NULL, HTML_XML_NS);
   $body->addAttribute('class', 'crowdsourced-content-body');
 
   // @todo Ensure that Drupal is sanitizing this input, or issue a warning for non-filtered input
-  $body_p = new SimpleXMLElement('<p>' . $form_state['values']['content_metadata']['value'] . '</p>');
+  $body_p = new SimpleXMLElement($form_state['values']['content_metadata']['value']);
   $body->p = $body_p;
-  
-  $mods_ds->content = $mods_doc->asXML();
+
+  return $mods_doc;
 }
 
 /**
@@ -85,7 +149,10 @@ function dss_crowdsourcing_form_submit($form, &$form_state) {
     }
 
     //comment_save($comment);
-    dss_crowdsourcing_metadata_save($form, $form_state);
+
+    $mods_doc = $form_state['mods_doc'];
+    dss_crowdsourcing_metadata_save($form, $form_state, $mods_doc);
+
     //$form_state['values']['cid'] = $comment->cid;
 
     // Add an entry to the watchdog log.
@@ -185,6 +252,17 @@ function dss_crowdsourcing_form_validate($form, &$form_state) {
   if ($form_state['values']['mail'] && !valid_email_address($form_state['values']['mail'])) {
     form_set_error('mail', t('The e-mail address you specified is not valid.'));
   }
+
+  // XML Validation for the MODS Form
+  $mods_doc = dss_crowdsourcing_metadata_transform($form, $form_state);
+  if(!dss_crowdsourcing_metadata_validate($mods_doc, $mods_xsd_uri = MODS_3_XSD_URI)) {
+
+    form_set_error('content_metadata', t('The information submitted contained improperly-structured HTML.  Please correct the structure of the markup and submit again.'));
+  }
+
+  // Store the document for the form submission
+  // @todo Refactor?
+  $form_state['mods_doc'] = $mods_doc;
 }
 
 /**
@@ -484,10 +562,47 @@ function dss_crowdsourcing_form($form, &$form_state, $object) {
 }
 
 /**
- * Implements hook_CMODEL_PID_islandora_view_object().
- *
+ * Implements hook_theme_registry_alter().
+ * @see islandora_large_image_theme_registry_alter().
  */
-function dss_crowdsourcing_islandora_bookcmodel_islandora_view_object($object) {
 
-  //dpm($object);
+function dss_crowdsourcing_theme_registry_alter(&$theme_registry) {
+
+  //$theme_registry['islandora_large_image']['path'] = drupal_get_path('module', 'dss_crowdsourcing');
+
+  //$theme_registry['islandora_large_image']['template'] = drupal_get_path('module', 'dss_crowdsourcing') . '/theme/islandora-large-image';
+
+  //$theme_registry['islandora_large_image']['template'] = 'islandora-large-image';
+  //$theme_registry['islandora_large_image']['theme paths'][] = drupal_get_path('module', 'dss_crowdsourcing') . '/theme';
 }
+
+function dss_crowdsourcing_theme() {
+
+  $items = array();
+
+  /*
+  return array(
+    'islandora_large_image' => array(
+      'template' => 'theme/islandora-large-image',
+      /**
+       * We can add pids to the end of this pattern in our preprocess function and templates
+       * will be able to have have a pid appended to the template name to overide a template on a per object basis
+       * an example template would be named islandora-basic-image--islandora-27.tpl.phps
+       * /
+      'pattern' => 'islandora_large_image__',
+      'variables' => array('islandora_object' => NULL),
+    ),
+  );
+   */
+
+  /*
+  $items['user_pass'] = array('template' => 'user-pass',
+			      'preprocess functions' => array(
+							      'yourtheme_preprocess_user_pass'
+							      ),
+			      );
+  */
+
+  return $items;
+}
+
