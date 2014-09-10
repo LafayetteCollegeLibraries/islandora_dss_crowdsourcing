@@ -51,7 +51,8 @@ function dss_crowdsourcing_preprocess_islandora_large_image(&$vars) {
 
   // Append comment form if needed.
   //if (user_access('post comments') && $node->comment == COMMENT_NODE_OPEN && (variable_get('comment_form_location_' . $node->type, COMMENT_FORM_BELOW) == COMMENT_FORM_BELOW)) {
-  if(user_access('post comments')) {
+  //if(user_access('post comments')) {
+  if(TRUE) {
     
     //$build = drupal_get_form("comment_node_{$node->type}_form", (object) array('nid' => $node->nid));
     //$additions['comment_form'] = $build;

@@ -320,7 +320,8 @@ function dss_crowdsourcing_form($form, &$form_state, $object) {
   // @todo Extend functionality for the administration of crowd-sourced metadata
   $is_admin = user_access('administer comments');
 
-  if (!$user->uid && $anonymous_contact != COMMENT_ANONYMOUS_MAYNOT_CONTACT) {
+  //if (!$user->uid && $anonymous_contact != COMMENT_ANONYMOUS_MAYNOT_CONTACT) {
+  if (!$user->uid) {
     $form['#attached']['library'][] = array('system', 'jquery.cookie');
     $form['#attributes']['class'][] = 'user-info-from-cookie';
   }
@@ -422,7 +423,8 @@ function dss_crowdsourcing_form($form, &$form_state, $object) {
       '#type' => 'textfield',
       '#title' => t('Your name'),
       '#default_value' => $author,
-      '#required' => (!$user->uid && $anonymous_contact == COMMENT_ANONYMOUS_MUST_CONTACT),
+      //'#required' => (!$user->uid && $anonymous_contact == COMMENT_ANONYMOUS_MUST_CONTACT),
+      '#required' => (!$user->uid ),
       '#maxlength' => 60,
       '#size' => 30,
     );
@@ -433,12 +435,15 @@ function dss_crowdsourcing_form($form, &$form_state, $object) {
     '#type' => 'textfield',
     '#title' => t('E-mail'),
     //'#default_value' => $comment->mail,
-    '#default_value' => $user->mail, // Prefer to use the e-mail of the currently authenticated user
-    '#required' => (!$user->uid && $anonymous_contact == COMMENT_ANONYMOUS_MUST_CONTACT),
+    //'#default_value' => $user->mail, // Prefer to use the e-mail of the currently authenticated user
+    '#default_value' => '', // Prefer to use the e-mail of the currently authenticated user
+    //'#required' => (!$user->uid && $anonymous_contact == COMMENT_ANONYMOUS_MUST_CONTACT),
+    '#required' => (!$user->uid),
     '#maxlength' => 64,
     '#size' => 30,
     '#description' => t('The content of this field is kept private and will not be shown publicly.'),
-    '#access' => $is_admin || (!$user->uid && $anonymous_contact != COMMENT_ANONYMOUS_MAYNOT_CONTACT),
+    //'#access' => $is_admin || (!$user->uid && $anonymous_contact != COMMENT_ANONYMOUS_MAYNOT_CONTACT),
+    '#access' => $is_admin || !$user->uid,
   );
 
   /*
