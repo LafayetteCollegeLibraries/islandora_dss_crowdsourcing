@@ -273,6 +273,19 @@ function dss_crowdsourcing_form_validate($form, &$form_state) {
  * @ingroup forms
  *
  */
+function dss_crowdsourcing_gis_form($form, &$form_state, $object) {
+
+  
+}
+
+/**
+ * The form for capturing metadata from the general user
+ * @see comment_form()
+ * @see dss_crowdsourcing_form_validate()
+ * @see dss_crowdsourcing_form_submit()
+ * @ingroup forms
+ *
+ */
 function dss_crowdsourcing_form($form, &$form_state, $object) {
 
   global $user;

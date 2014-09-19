@@ -45,6 +45,8 @@ function dss_crowdsourcing_preprocess_islandora_book_book(array &$vars) {
  */
 function dss_crowdsourcing_preprocess_islandora_large_image(&$vars) {
 
+  dpm('trace');
+
   $vars['template_files'][] = 'islandora-large-image';
 
   $object = $vars['islandora_object'];
@@ -56,7 +58,17 @@ function dss_crowdsourcing_preprocess_islandora_large_image(&$vars) {
     
     //$build = drupal_get_form("comment_node_{$node->type}_form", (object) array('nid' => $node->nid));
     //$additions['comment_form'] = $build;
-    $build = drupal_get_form('dss_crowdsourcing_form', (object) array('object_pid' => $object->id));
-    $vars['crowdsourcing'] = drupal_render($build);
+
+    // Is this a GeoTIFF?
+    //if(module_exists('islandora_gis') and islandora_gis_object_is_georeferenced($object)) {
+    if(TRUE) {
+
+      $build = drupal_get_form('dss_crowdsourcing_gis_form', (object) array('object_pid' => $object->id));
+      $vars['crowdsourcing'] = drupal_render($build);
+    } else {
+
+      $build = drupal_get_form('dss_crowdsourcing_form', (object) array('object_pid' => $object->id));
+      $vars['crowdsourcing'] = drupal_render($build);
+    }
   }
 }
