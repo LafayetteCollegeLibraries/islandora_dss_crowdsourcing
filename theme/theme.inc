@@ -66,13 +66,32 @@ function dss_crowdsourcing_preprocess_islandora_large_image(&$vars) {
 	$form = drupal_get_form('mytype_node_form', $node);
        */
 
-      //$build = drupal_get_form('dss_crowdsourcing_gis_form', (object) array('object_pid' => $object->id));
+      // Adding the GIS Feature Node Form
 
+      // If a Node has already been stored in relation to this Islandora Object, retrieve it.
       module_load_include('inc', 'node', 'node.pages');
-      $node_form = new stdClass;
-      $node_form->type = 'islandora_gis_feature';
-      $node_form->language = LANGUAGE_NONE;
+
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', 'node')
+	->entityCondition('bundle', 'islandora_gis_feature')
+	->fieldCondition('field_islandora_object', 'value', $object->id, '=');
+
+      $result = $query->execute();
+      if(isset($result['node'])) {
+
+	$nids = array_keys($result['node']);
+	$nodes = entity_load('node', $nids);
+	$node_form = array_pop($nodes);
+      } else {
+
+	$node_form = new stdClass;
+	$node_form->type = 'islandora_gis_feature';
+	$node_form->language = LANGUAGE_NONE;
+      }
+
       $build = drupal_get_form('islandora_gis_feature_node_form', $node_form);
+      $build['field_islandora_object'][$build['field_islandora_object']['#language']][0]['value']['#value'] = $object->id;
+      //dpm($build);
 
       $vars['crowdsourcing'] = drupal_render($build);
     } else {
@@ -86,7 +105,8 @@ function dss_crowdsourcing_preprocess_islandora_large_image(&$vars) {
 
 function dss_crowdsourcing_form_islandora_gis_feature_node_form_alter(&$form) {
 
-  //dpm($form);
+  dpm($form);
+  dpm(func_get_args());
 
   $form['content_fields'] = array('#type' => 'fieldset',
 				  '#title' => 'Specify a Location for this Content',
@@ -101,4 +121,10 @@ function dss_crowdsourcing_form_islandora_gis_feature_node_form_alter(&$form) {
       hide($form[$field_name]);
     }
   }
+
+  // Store the PID for the related Islandora Object
+  //hide($form['field_islandora_object']);
+
+  $form['field_islandora_object'][ $form['field_islandora_object']['#language'] ][0]['value']['#type'] = 'hidden';
+  dpm($form['field_islandora_object']);
 }
