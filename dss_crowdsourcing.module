@@ -586,13 +586,17 @@ function dss_crowdsourcing_form($form, &$form_state, $object) {
 
 function dss_crowdsourcing_theme_registry_alter(&$theme_registry) {
 
-  //$theme_registry['islandora_large_image']['path'] = drupal_get_path('module', 'dss_crowdsourcing');
+  dpm($theme_registry['islandora_large_image']);
 
-  //$theme_registry['islandora_large_image']['template'] = drupal_get_path('module', 'dss_crowdsourcing') . '/theme/islandora-large-image';
+  // sites/all/modules/islandora_solution_pack_large_image/theme/islandora-large-image
 
-  //$theme_registry['islandora_large_image']['template'] = 'islandora-large-image';
-  //$theme_registry['islandora_large_image']['theme paths'][] = drupal_get_path('module', 'dss_crowdsourcing') . '/theme';
+  $theme_registry['islandora_large_image']['template'] = drupal_get_path('module', 'dss_crowdsourcing') . '/theme/islandora-large-image';
+  $theme_registry['islandora_large_image']['theme path'] = drupal_get_path('module', 'dss_crowdsourcing');
+  // sites/all/modules/islandora_solution_pack_large_image/theme/islandora-large-image
+
+  dpm($theme_registry['islandora_large_image']);
 }
+
 
 function dss_crowdsourcing_theme() {
 

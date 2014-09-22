@@ -45,8 +45,6 @@ function dss_crowdsourcing_preprocess_islandora_book_book(array &$vars) {
  */
 function dss_crowdsourcing_preprocess_islandora_large_image(&$vars) {
 
-  dpm('trace');
-
   $vars['template_files'][] = 'islandora-large-image';
 
   $object = $vars['islandora_object'];
@@ -55,20 +53,52 @@ function dss_crowdsourcing_preprocess_islandora_large_image(&$vars) {
   //if (user_access('post comments') && $node->comment == COMMENT_NODE_OPEN && (variable_get('comment_form_location_' . $node->type, COMMENT_FORM_BELOW) == COMMENT_FORM_BELOW)) {
   //if(user_access('post comments')) {
   if(TRUE) {
-    
+
     //$build = drupal_get_form("comment_node_{$node->type}_form", (object) array('nid' => $node->nid));
     //$additions['comment_form'] = $build;
 
     // Is this a GeoTIFF?
-    //if(module_exists('islandora_gis') and islandora_gis_object_is_georeferenced($object)) {
-    if(TRUE) {
+    if(module_exists('islandora_gis') and islandora_gis_object_is_georeferenced($object)) {
 
-      $build = drupal_get_form('dss_crowdsourcing_gis_form', (object) array('object_pid' => $object->id));
+      /*
+	module_load_include('inc', 'node', 'node.pages');
+	$node = clone $vars['node'];
+	$form = drupal_get_form('mytype_node_form', $node);
+       */
+
+      //$build = drupal_get_form('dss_crowdsourcing_gis_form', (object) array('object_pid' => $object->id));
+
+      module_load_include('inc', 'node', 'node.pages');
+      $node_form = new stdClass;
+      $node_form->type = 'islandora_gis_feature';
+      $node_form->language = LANGUAGE_NONE;
+      $build = drupal_get_form('islandora_gis_feature_node_form', $node_form);
+
       $vars['crowdsourcing'] = drupal_render($build);
     } else {
 
       $build = drupal_get_form('dss_crowdsourcing_form', (object) array('object_pid' => $object->id));
       $vars['crowdsourcing'] = drupal_render($build);
+    }
+  }
+}
+
+
+function dss_crowdsourcing_form_islandora_gis_feature_node_form_alter(&$form) {
+
+  //dpm($form);
+
+  $form['content_fields'] = array('#type' => 'fieldset',
+				  '#title' => 'Specify a Location for this Content',
+				  '#collapsible' => TRUE,
+				  );
+
+  foreach(array('title', 'field_primary_feature', 'body') as $field_name) {
+
+    if(array_key_exists($field_name, $form)) {
+
+      $form['content_fields'][$field_name] = $form[$field_name];
+      hide($form[$field_name]);
     }
   }
 }
