@@ -57,8 +57,11 @@ function dss_crowdsourcing_preprocess_islandora_large_image(&$vars) {
     //$build = drupal_get_form("comment_node_{$node->type}_form", (object) array('nid' => $node->nid));
     //$additions['comment_form'] = $build;
 
+    $islandora_object_field = variable_get('dss_crowdsourcing_islandora_object', 'field_islandora_object');
+    field_info_field($islandora_object_field);
+
     // Is this a GeoTIFF?
-    if(module_exists('islandora_gis') and islandora_gis_object_is_georeferenced($object)) {
+    if(module_exists('islandora_gis') and islandora_gis_object_is_georeferenced($object) and !is_null(field_info_field($islandora_object_field))) {
 
       /*
 	module_load_include('inc', 'node', 'node.pages');
@@ -71,10 +74,12 @@ function dss_crowdsourcing_preprocess_islandora_large_image(&$vars) {
       // If a Node has already been stored in relation to this Islandora Object, retrieve it.
       module_load_include('inc', 'node', 'node.pages');
 
+      // Ensure that the field exists
+
       $query = new EntityFieldQuery();
       $query->entityCondition('entity_type', 'node')
 	->entityCondition('bundle', 'islandora_gis_feature')
-	->fieldCondition('field_islandora_object', 'value', $object->id, '=');
+	->fieldCondition($islandora_object_field, 'value', $object->id, '=');
 
       $result = $query->execute();
       if(isset($result['node'])) {
@@ -91,7 +96,7 @@ function dss_crowdsourcing_preprocess_islandora_large_image(&$vars) {
 
       $build = drupal_get_form('islandora_gis_feature_node_form', $node_form);
       $build['field_islandora_object'][$build['field_islandora_object']['#language']][0]['value']['#value'] = $object->id;
-      //dpm($build);
+      dpm($build);
 
       $vars['crowdsourcing'] = drupal_render($build);
     } else {
